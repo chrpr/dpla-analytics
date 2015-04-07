@@ -1,0 +1,7 @@
+*.sublime-project
+*.sublime-workspace
+*.pdf
+*.docx
+*.msi
+*.exe
+*.tsv
