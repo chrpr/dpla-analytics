@@ -4,7 +4,7 @@ import codecs
 from datetime import datetime
 from time import strftime, localtime
 
-f = codecs.open("/media/storage/dpla-data/new/dplaran", 'r', encoding='utf-8')
+f = codecs.open("/media/storage/dpla-data/new/dpla", 'r', encoding='utf-8')
 # Main output file
 
 #This bit of data structure won't work in standard IO.
