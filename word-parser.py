@@ -38,7 +38,8 @@ colls = {    "ARTstor": "artstor",
              "United States Government Printing Office (GPO)": "gpo",
              "University of Illinois at Urbana-Champaign": "illinois",
              "University of Southern California. Libraries": "usc",
-             "University of Virginia Library": "virginia"     
+             "University of Virginia Library": "virginia",
+             "nocoll": "nocoll"   
         }
 
 fieldfiles = {}
@@ -106,41 +107,41 @@ for item in ijson.items(f, "item"):
                         # print field
                         # print entry
                         if 'title' in entry.keys():
-                            string += unicode(entry['title']) + " "
-                            fieldfiles[field].write(unicode(entry['title']) + " ")
+                            string += unicode(entry['title']) + "\n"
+                            fieldfiles[field].write(unicode(entry['title']) + "\n")
                         elif 'displayDate' in entry.keys():
-                            string += unicode(entry['displayDate']) + " "
-                            fieldfiles[field].write(unicode(entry['displayDate']) + " ")
+                            string += unicode(entry['displayDate']) + "\n"
+                            fieldfiles[field].write(unicode(entry['displayDate']) + "\n")
                         elif 'name' in entry.keys():
-                            string += unicode(entry['name']) + " "
-                            fieldfiles[field].write(unicode(entry['name']) + " ")
+                            string += unicode(entry['name']) + "\n"
+                            fieldfiles[field].write(unicode(entry['name']) + "\n")
                         else:
-                            string += unicode(entry) + " "
-                            fieldfiles[field].write(unicode(entry) + " ")
+                            string += unicode(entry) + "\n"
+                            fieldfiles[field].write(unicode(entry) + "\n")
                     elif entry is not None:
-                        string += unicode(entry) + " "
-                        fieldfiles[field].write(unicode(entry) + " ")
+                        string += unicode(entry) + "\n"
+                        fieldfiles[field].write(unicode(entry) + "\n")
             elif isinstance(item['sourceResource'][field], dict):
                 #print item['sourceResource'][field]
                 if 'title' in item['sourceResource'][field].keys():
-                    string += unicode(item['sourceResource'][field]['title']) + " "
-                    fieldfiles[field].write(unicode(item['sourceResource'][field]['title']) + " ")
+                    string += unicode(item['sourceResource'][field]['title']) + "\n"
+                    fieldfiles[field].write(unicode(item['sourceResource'][field]['title']) + "\n")
                 elif 'displayDate' in item['sourceResource'][field].keys():
-                    string += unicode(item['sourceResource'][field]['displayDate']) + " "
-                    fieldfiles[field].write(unicode(item['sourceResource'][field]['displayDate']) + " ")
+                    string += unicode(item['sourceResource'][field]['displayDate']) + "\n"
+                    fieldfiles[field].write(unicode(item['sourceResource'][field]['displayDate']) + "\n")
                 else:
-                    string += unicode(item['sourceResource'][field]['name']) + " "
-                    fieldfiles[field].write(unicode(item['sourceResource'][field]['name']) + " ")
+                    string += unicode(item['sourceResource'][field]['name']) + "\n"
+                    fieldfiles[field].write(unicode(item['sourceResource'][field]['name']) + "\n")
                 #fieldfiles[f].write(item['sourceResource'][f]['title']) 
             else:  
                 #print item['sourceResource'][field]
-                string += unicode(item['sourceResource'][field]) + " "
-                fieldfiles[field].write(unicode(item['sourceResource'][field]) + " ")
+                string += unicode(item['sourceResource'][field]) + "\n"
+                fieldfiles[field].write(unicode(item['sourceResource'][field]) + "\n")
     
-    string += " " + prov + " " + subprov + " "
+    string += " " + prov + " " + subprov + "\n"
     #print string
     #collfiles[cname].write(string + "\n")
-    collfiles[cname].write(string + " ")
+    collfiles[cname].write(string + "\n")
 
 #objects = ijson.items(f, 'sourceResource')
 #for o in objects:
