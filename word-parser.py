@@ -4,7 +4,7 @@ import codecs
 from datetime import datetime
 from time import strftime, localtime
 
-f = codecs.open("/media/storage/dpla-data/new/dpla", 'r', encoding='utf-8')
+f = codecs.open("/media/storage/dpla-data/dplanew", 'r', encoding='utf-8')
 # Main output file
 
 #This bit of data structure won't work in standard IO.
@@ -52,9 +52,9 @@ collfiles = {}
 # for field in fieldfiles: print field
 
 for s in fields:
-   fieldfiles[s] = codecs.open('/media/storage/dpla-data/new/words/fields/%s.txt' %s, 'w', encoding='utf-8')
+   fieldfiles[s] = codecs.open('/media/storage/dpla-data/words/fields/%s.txt' %s, 'w', encoding='utf-8')
 for s in colls.itervalues():
-   collfiles[s] = codecs.open('/media/storage/dpla-data/new/words/colls/%s.txt' %s, 'w', encoding='utf-8')
+   collfiles[s] = codecs.open('/media/storage/dpla-data/words/colls/%s.txt' %s, 'w', encoding='utf-8')
 
 # for k,v in fieldfiles.iteritems():
 #     print k
