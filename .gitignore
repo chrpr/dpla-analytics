@@ -5,3 +5,6 @@
 *.msi
 *.exe
 *.tsv
+
+# ignoring virtual environments
+venv/
