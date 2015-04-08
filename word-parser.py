@@ -129,9 +129,12 @@ for item in ijson.items(f, "item"):
                 elif 'displayDate' in item['sourceResource'][field].keys():
                     string += unicode(item['sourceResource'][field]['displayDate']) + "\n"
                     fieldfiles[field].write(unicode(item['sourceResource'][field]['displayDate']) + "\n")
-                else:
+                elif 'name' in item['sourceResource'][field].keys():
                     string += unicode(item['sourceResource'][field]['name']) + "\n"
                     fieldfiles[field].write(unicode(item['sourceResource'][field]['name']) + "\n")
+                else:
+                    string += unicode(item['sourceResource'][field]) + "\n"
+                    fieldfiles[field].write(unicode(item['sourceResource'][field]) + "\n")
                 #fieldfiles[f].write(item['sourceResource'][f]['title']) 
             else:  
                 #print item['sourceResource'][field]
