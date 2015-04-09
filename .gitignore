@@ -8,3 +8,5 @@
 
 # ignoring virtual environments
 venv/
+# ignoring ipynb checkpoints
+*/.ipynb_checkpoints/
