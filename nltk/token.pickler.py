@@ -9,40 +9,57 @@ reader = CategorizedPlaintextCorpusReader('/media/storage/dpla-data/words/colls/
 
 # Removing oversized collections: hathi, nypl; Also, chunking them out:
 # First batch represents what was completed on 4/10-4/11. 
-#colls = ["artstor","biodiv","rumsey","commonwealth","georgia","harvard"]
+colls = ["searches"]
+#colls = ["artstor","biodiv","rumsey","commonwealth","georgia","harvard",
+#        "ia","getty","kentucky","minnesota","missouri","mwdl","nara","nocar",
+#        "smiths","socar","texas","gpo","illinois","usc","virginia","nocoll"]
 #colls = ["ia","getty","kentucky","minnesota","missouri","mwdl"]
-colls = ["nara","nocar","smiths","socar","texas","gpo","illinois","usc","virginia","nocoll"]
+#colls = ["nara","nocar","smiths","socar","texas","gpo","illinois","usc","virginia","nocoll"]
 
 #data = {}
+stats = {}
+common = {}
 
 for coll in colls:
     print(reader.categories(coll+".txt"))
-    data = {}
-    data[coll] = {}
-    data[coll]["stats"] = {}
+    stats[coll] = {}
     # 'kay. Can't pickle words. It's a stream reader.
     # But maybe you can if you tokenize we regex
     # Which also pulls out punctuation
+    print("prep & pickle words")
     words = re.split(r'\W+', reader.raw(coll+'.txt'))
-    data[coll]["words"] = words
+    pickle.dump( words, open( "/media/storage/dpla-data/pickles/new/"+coll+"_words.p", "wb"))
     #words = reader.words(coll+".txt")
     #data[coll]["words"] = reader.words(coll+".txt")
     print("getting count " + time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.localtime()))
-    data[coll]["stats"]["wc"] = len(words)
-    print(data[coll]["stats"]["wc"])
+    stats[coll]["wc"] = len(words)
+    print(stats[coll]["wc"])
     print("getting uniq " + time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.localtime()))
-    data[coll]["stats"]["uniq"] = len(set([w.lower() for w in words]))
-    print(data[coll]["stats"]["uniq"])
-    print("filtering " + time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.localtime()))
-    data[coll]["filtered"] = [w for w in words if w.lower() not in nltk.corpus.stopwords.words('english')]
+    stats[coll]["uniq"] = len(set([w.lower() for w in words]))
+    print(stats[coll]["uniq"])
+    print("filtering & pickling " + time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.localtime()))
+    filtered = [w for w in words if w.lower() not in nltk.corpus.stopwords.words('english')]
+    pickle.dump( filtered, open( "/media/storage/dpla-data/pickles/new/"+coll+"_filtered.p", "wb"))
     print("getting filter count " + time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.localtime()))
-    data[coll]["stats"]["fwc"] = len(data[coll]["filtered"])
-    print(data[coll]["stats"]["fwc"])
+    stats[coll]["fwc"] = len(filtered)
+    print(stats[coll]["fwc"])
     print("getting filter uniq " + time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.localtime()))
-    data[coll]["stats"]["funiq"] = len(set([w.lower() for w in data[coll]["filtered"]]))
-    print(data[coll]["stats"]["funiq"])
+    stats[coll]["funiq"] = len(set([w.lower() for w in filtered]))
+    print(stats[coll]["funiq"])
+    print("getting and pickling frequency distributions")
+    fd = nltk.FreqDist((token) for token in filtered)
+    stats[coll]["haps"] = len(fd.hapaxes())
+    pickle.dump( fd, open( "/media/storage/dpla-data/pickles/new/"+coll+"_fd.p", "wb"))
+    print("Coungint Hapaxes and collecting most-common")
+    print(stats[coll]["haps"])
+    common[coll] = fd.most_common(200)
+    #common.extend(fd.most_common(100))
+    print("common is now: ", len(common))
     #Maybe can't pickle frequency dists? If not, I'll have to fire 'em up later.
     #Or maybe pull their most common?
     #print("getting freqdist " + time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.localtime()))
     #data[coll]["fd"] = nltk.FreqDist((token) for token in data[coll]["filtered"])
-    pickle.dump( data, open( "/media/storage/dpla-data/pickles/"+coll+".p", "wb" ) )
+
+
+pickle.dump( stats, open( "/media/storage/dpla-data/pickles/new/sear_stats.p", "wb" ) )
+pickle.dump( common, open( "/media/storage/dpla-data/pickles/new/sear_common.p", "wb" ) )
