@@ -654,3 +654,297 @@ FYI -- Bad files on the work box are: georgia & dpla itself (under new and under
 THis affects dev/sda7 on the ATA WDC WDIVEALX-759BA1 drive
   * I've already contated Beatrice about this issue.
   * Whooo!
+
+Holy crap, this thing is awesome: 
+awk -F"\"" '!$NF{print;next}{printf("%s ", $0)}' records.txt > records.cleaned.txt
+
+9e0736dcbe94f9870223a58317916561
+
+I can do it by length of $1, but in doing so I will be throwing away ~6million words.
+out of 794,652,345 so less than 1 percent (00.75%)
+
+awk ' BEGIN { FS = "|" } { if (length($1) != 32) {  print $1 } } ' records.cleaned.txt | wc
+ 135849 6433366 46882643
+
+ THere might actually be a cleaner way to do this, based on the fact that the first field is always 32 characters. Replace the record separators with an alternate version, then replace the newlines, then put everything back...
+
+ Crazy similarity measure stuff whoooo!
+ (See bookmark)
+
+Also, R-Studio under linux has bad memory management.
+
+Even when using rm(object) and gc() to garbage collect, still craps out even where windows was okay.
+
+Argh! Write Papers!!
+
+So, apparently this thing didn't do what I though, as for some reason my data be all artstorish?
+
+But this thing works fine:
+charper@KARMS-325-PC02L:~$ awk ' BEGIN { FS = "|" } OFS = "|" { if ($22 == "Harvard Library" || $22 == "Minnesota Digital Library" || $22 == "ARTstor" || $22 == "J. Paul Getty Trust" || $22 == "University of Virginia Library" || $22 == "David Rumsey") {  print $0 } } ' /media/storage/dpla-data/new/dpla.merged2.csv | awk ' BEGIN { FS = "|" } { print $22 } ' | sort | uniq -c
+  56342 ARTstor
+  48132 David Rumsey
+  10568 Harvard Library
+  92681 J. Paul Getty Trust
+  40533 Minnesota Digital Library
+  30188 University of Virginia Library
+
+Now we've found this thing: 
+
+charper@KARMS-325-PC02L:/media/storage/dpla-data/words$ awk ' BEGIN { FS = "|" } { print $27 } ' words.merged.csv | sort | uniq -c | sort -rn
+
+This is crazy.    3698 of these records have 1107 matches!
+
+
+charper@KARMS-325-PC02L:/media/storage/dpla-data/new$ jq '.[].sourceResource as $rec | if $rec.subject then $rec.subject as $sub | $sub[] | keys else 0 end' dplaran | sort | uniq -c | sort
+
+Okay so this thing does some things...
+I can now get some keys. Filters out "no subject" records. Still chokes if 
+
+  * So how to take the NLTK data, push it to a format that I can pull into R, and then do shiny dashboard things
+
+Okay, so we can do 
+charper@KARMS-325-PC02L:/media/storage/dpla-data/new$ jq '.[].sourceResource as $rec | if $rec.date then $rec.date as $date | if $date.len > 1 then $date[] | keys else 0 end else 0 end' dpla100 | sort | uniq -c | sort
+
+Okay, now _this_ thing works:
+
+charper@KARMS-325-PC02L:/media/storage/dpla-data/new$ jq '.[].sourceResource as $rec | if $rec.subject then $rec.subject as $sub | if length > 0 then $sub[] | keys else 0 end else 0 end' dplaran | sort | uniq -c | sort
+
+
+jq -r '.[].sourceResource as $rec | if $rec.type then $rec.type else "None" end' dpla | tr -d "[:blank:]\[\]\"," | sort | uniq
+
+get all dpla types: 
+
+Step 1: cat dpla  | sed '1s/^\[//; n;d;' > dpla.seps (takes 20 min, but necessary. See https://github.com/stedolan/jq/issues/214)
+
+Hmmm -- Maybe this doesn't actually do what's intended. It cut size of data _in half_....
+
+cat dpla.seps | jq -r '.[].sourceResource as $r | if $r.type then $r.type else "None" end' | tr -d "[:blank:]\[\]\"," | sort | uniq
+
+Okay, this may not work. It's just gonna keep choking, though also I was working from the busted file, so could do better.
+
+Either way, am currently running regress-parser, which takes type & format (multivals concatenated) as text fields.
+
+Woot, okay, so there's a _ton_ of format data in the type field...
+
+3952622 image
+3801181 text
+ 215719 None
+  22238 moving image
+   9339 physical object
+   9052 sound
+   1338 image,physical object
+    741 text,image
+     46 image,text
+      6 ~
+
+Bwahahahaha: 
+charper@KARMS-325-PC02L:/media/storage/dpla-data$ awk ' BEGIN { FS = "|" ; OFS = "|" } {
+if ($5 == "image" || $5 == "text" || $5 == "None" || $5 == "moving image" || $5 == "pyysical object" || $5 == "sound") { print $0 }
+else if ($5 == "image,physical object" || $5 == "image,text") { print $1,$2,$3,$4,"image",$6 }
+} ' dpla.anova.csv | awk ' BEGIN { FS = "|" } { print $5 } ' | sort | uniq -c | sort -rn
+
+Full version: 
+charper@KARMS-325-PC02L:/media/storage/dpla-data$ awk ' BEGIN { FS = "|" ; OFS = "|" } {
+if ($5 == "image" || $5 == "text" || $5 == "None" || $5 == "moving image" || $5 == "physical object" || $5 == "sound") { print $0 }
+else if ($5 == "image,physical object" || $5 == "image,text") { print $1,$2,$3,$4,"image",$6,$7 }
+else if ($5 == "text,image") { print $1,$2,$3,$4,"text",$6,$7 }
+else { print $1,$2,$3,$4,"Misc",$6,$7 }
+} ' dpla.anova.csv | awk ' BEGIN { FS = "|" } { print $5 } ' | sort | uniq -c | sort -rn
+
+Whoops - I need a clause to catch the header, but can ignore that for now.
+
+Re-run! Need to catch "physical", not "pyysical"
+
+Kay. That's better. Now I'm also going to grab me some provider / format pairs:
+
+charper@KARMS-325-PC02L:/media/storage/dpla-data$ awk ' BEGIN { FS = "|" ; OFS = "|"} {
+if ($5 == "image" || $5 == "text" || $5 == "None" || $5 == "moving image" || $5 == "physical object" || $5 == "sound") { print $0 }
+else if ($5 == "image,physical object" || $5 == "image,text") { print $1,$2,$3,$4,"image",$6,$7 }
+else if ($5 == "text,image") { print $1,$2,$3,$4,"text",$6,$7 }
+else { print $1,$2,$3,$4,"Misc",$6,$7 }
+} ' dpla.anova.csv | awk ' BEGIN { FS = "|" ; OFS = "|" } { print $2,$5 } ' | sort | uniq -c | sort -rn > prov.format.counts.txt
+
+For regression class:
+
+* Harvard
+* Mountain West Digital Library (Maybe no)
+* Portal to Texas History (Maybe no)
+* Minnesota Digital Library
+* David Rumsey
+* University of Illinois at Urbana-Champaign
+
+charper@KARMS-325-PC02L:/media/storage/dpla-data$ awk ' BEGIN { FS = "|" ; OFS = "|" } { if ($2 == "Minnesota Digital Library" || $2 == "Harvard Library" || $2 == "David Rumsey" || $2 == "University of Illinois at Urbana-Champaign") { print $5 } } ' dpla.anova.normal2.csv | sort | uniq -c | sort -rn
+  83205 image
+  15749 text
+    263 sound
+     16 moving image
+
+charper@KARMS-325-PC02L:/media/storage/dpla-data$ awk ' BEGIN { FS = "|" ; OFS = "|" } { if ($2 == "Minnesota Digital Library" || $2 == "Harvard Library" || $2 == "David Rumsey" || $2 == "University of Illinois at Urbana-Champaign") { print $5 } } ' dpla.anova.normal2.csv | sort | uniq -c | sort -rn
+  95595 image
+  17772 text
+   3676 None
+    269 sound
+     24 moving image
+
+
+Same for "print $2":
+  48132 David Rumsey
+  40533 Minnesota Digital Library
+  18103 University of Illinois at Urbana-Champaign
+  10568 Harvard Library
+
+##### October 2015
+
+dpla in october.
+
+Last data file was 43 gig. This was from November (2014)
+
+Whoo -- This is a slick trick:
+First, take context and get a group of records into a new file:
+grep -C 3 '5d39d8fbf9c77deb27bbc68c997268e0' dpla > tmp.records
+
+THen add some stuff to make it valid json:
+awk 'BEGIN { print "[" }; 1 ; END { print "{}]" } ' tmp.records | jq -C '.' | less -r
+
+Midnight on 10/14: My script finished!
+
+My data pile is ridiculous:
+
+(/home/charper/anaconda)charper@KARMS-325-PC02L:/media/storage/dpla-data/words$ wc text.csv
+  131721846  1480977737 18529061050 text.csv
+
+Whoo boy: 131 million!!
+
+And now if I want lengths, I can do: 
+
+head text.csv | awk ' BEGIN { FS = "|" ; OFS = "|" } { print $0,length($5) } '
+
+This is giving me characters. What about counting actual words? Maybe not in Awk...
+
+Field Distribution:
+
+charper@KARMS-325-PC02L:/media/storage/dpla-data/words$ awk ' BEGIN { FS = "|" ; OFS = "|" } { print $4 } ' text.csv | sort | uniq -c
+6320738 collection - No
+1840954 contributor - No
+5792252 creator - No
+6624764 date - Yes
+9389381 description - Yes
+2591658 extent - No
+7992054 format - No
+15535198 identifier - No
+1065929 isPartOf - No
+3732702 language - No
+3452797 publisher - No
+4845290 relation - No
+8338160 rights - No
+6004842 spatial - Yes
+2865287 specType - No
+3739620 stateLocatedIn - ??
+23976962 subject - Yes
+1071350 temporal - Yes
+8743128 title - Yes
+7798780 type - No
+
+date, description, spatial, subject, temporal, title
+
+After filtering, we're down to 55 million.
+charper@KARMS-325-PC02L:/media/storage/dpla-data/words$ wc desc.text.csv
+  55810427  661779322 7941194179 desc.text.csv
+
+grep "Early works to 1800" desc.text.csv > early.works.csv
+
+  charper@KARMS-325-PC02L:/media/storage/dpla-data/words$ awk ' BEGIN { FS = "|" ; OFS = "|" } { if ($5 ~ /^Early/)  print $0,"faceted"  ; else if ( $5 ~ /--Early/ )  print $0,"precoord" ;  else  print $0,"Neither"  } ' early.works.csv > tmp && mv tmp early.works.csv
+
+
+This tests for problematic stuff:
+
+awk ' BEGIN { FS = "|" ; OFS = "|" } { print NF } ' space.time.clean.csv | sort | uniq -c
+
+My python script now fixes them. And preps more collection level and item level text blobules. Wheee!
+
+Over and over, my script it blows up because the data dump is crappy. Whaa. 
+
+Need a new friggin data dump.
+
+Why'd it blow up at that line? What's the dealy-o?
+
+Okay, gotta fix some shit. Yippie. But I can work this so it appends to data rather than deletes it.
+
+ (/home/charper/anaconda)charper@KARMS-325-PC02L:~/Dropbox/dpla$wc /media/storage/dpla-data/words/desc.*
+   53639822   633930055  7587459469 /media/storage/dpla-data/words/desc.clean.csv
+   55810427   661779322  7941194179 /media/storage/dpla-data/words/desc.text.csv
+  109450249  1295709377 15528653648 total
+
+So this is the evil file that has the weirdo character in it:
+012cfc8bffc26e85d89e55b38f331e66.txt
+
+Grrrr.. Fuck USC.
+
+So, the full run of delim after fixing broken shit took ~ 8 hours:
+Start: Sun, 18 Oct 2015 22:22:51 +0000
+End: Mon, 19 Oct 2015 06:41:29 +0000
+
+tmux scrollback from token-pickler
+
+see tmux-buffer text file in /home/charper...
+
+Also dpla.freqs.log has scrollback from merger thingy
+
+##### Reran Analytics. Here's the old top keywords:
+
+charper@KARMS-325-PC02L:/media/storage/dpla-data/words/colls.oct/analytics$ wc ~/projects/dpla/tmp.dpla.keywords.weekly.csv
+ 360039 1011193 8115139 /home/charper/projects/dpla/tmp.dpla.keywords.weekly.csv
+charper@KARMS-325-PC02L:/media/storage/dpla-data/words/colls.oct/analytics$ sort -k 2 -t '|' -rn ~/projects/dpla/tmp.dpla.keywords.weekly.csv | head
+image|31797
+text|20927
+moving image|5170
+sound|3329
+Harvard University|2925
+New York Public Library|2845
+University of Michigan|2551
+Digital Library of Georgia|2260
+University of California|1929
+Smithsonian Institution|1535
+
+image|41681
+text|27308
+moving image|6764
+sound|4336
+Harvard University|4223
+New York Public Library|3446
+University of Michigan|3039
+Digital Library of Georgia|2517
+University of California|2304
+HathiTrust|1882
+
+And similar for regular analytics? 
+
+Apparently I last ran that on workhorse laptop. Need to get that data.
+
+charper@KARMS-325-PC02L:/media/storage/dpla-data/words/colls.oct/analytics$ sort -k 2 -t '|' -rn dpla.analytics.weekly.csv | head
+/item/c5cf1632a8a2c137c9b0e7b093024e0a|5191   
+/item/b6532388a7eee02db4ccb3d31a76a3df|3230
+/item/16de95ea0eb35060576385966aed3f3f|3189
+/item/ecdafcf9b06be6efed042e40b3923e57|2160
+/item/1619731699db08a2c2f8584e12729e72|2090
+/item/123c3ea1d7f099da675ce7c3a6c0ca4b|1841
+/item/100b1a8594ff7d162e13ff9dfca27c3d|1541
+/item/9824dc12222f81e6040f85db570a2a32|1494
+/item/b3d8c3ad9a97610d77eb9c53c7def845|1219
+/item/295501959544528b1ef79330dcb598ed|962
+
+
+Here's notes on how to do this:
+https://ricochen.wordpress.com/2011/04/07/capture-tmux-output-the-much-less-painful-way/
+1) tmux a
+2) ^b [
+3) ^ space
+4) move cursor with arrow keys and/or pageup/pagedown keys
+5) ^ w
+6) ^b ] (crossed out -- not needed?)
+7) ^b:
+8) save-buffer ~/out_file
+
+Playing with LDA shit in commonwealth:
+There are 124804 files
+
