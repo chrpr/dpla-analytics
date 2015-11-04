@@ -5,6 +5,8 @@ import pprint
 import sys
 import codecs
 import argparse
+import yaml
+
 
 # import the Auth Helper class
 import auth
@@ -31,10 +33,12 @@ last = datetime.now()
 #logger = codecs.open('/media/Windows7_OS/dpla/new/analytics.log', 'a', encoding='utf-8')
 #analyt.write("item|hits\n")
 analyt = codecs.open(args.output, 'w', encoding='utf-8')
-logger = codecs.open('/media/storage/dpla-data/words/colls.oct/analytics/analytics.log.20151104', 'a', encoding='utf-8')
+logger = codecs.open('analytics.log', 'a', encoding='utf-8')
 analyt.write("item|hits\n")
 
 
+with open(args.config, 'r') as ymlfile:
+    cfg = yaml.load(ymlfile)
 
 logger.write("\n\n##########\n##### " + str(last) + "\n##########\n\n")
 
@@ -130,11 +134,11 @@ def get_data(service, profile_id, sdate, edate, start):
     start_date=sdate,
     end_date=edate,
     #metrics='ga:hits',
-    metrics='ga:pageviews',
-    dimensions='ga:pagePath',
+    metrics=cfg['query']['metrics'],
+    dimensions=cfg['query']['dimensions'],
     #sort='-ga:hits',
-    sort='-ga:pageviews',    
-    filters='ga:pagepath=~^/item/',
+    sort=cfg['query']['sort'],    
+    filters=cfg['query']['filters'],
     #filters='ga:pagepath=~^/item/c5cf1632a8a2c137c9b0e7b093024e0a',
     start_index=start,
     max_results='10000').execute()

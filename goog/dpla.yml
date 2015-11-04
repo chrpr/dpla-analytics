@@ -1,0 +1,6 @@
+query:
+    metrics: ga:pageviews
+    dimensions: ga:pagePath
+    sort: -ga:pageviews
+    filters: ga:pagepath=~^/item/
+
