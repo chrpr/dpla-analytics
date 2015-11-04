@@ -4,9 +4,10 @@
 import pprint
 import sys
 import codecs
+import argparse
 
 # import the Auth Helper class
-import hello_analytics_api_v3_auth
+import auth
 
 from apiclient.errors import HttpError
 from oauth2client.client import AccessTokenRefreshError
@@ -14,6 +15,11 @@ from oauth2client.client import AccessTokenRefreshError
 from dateutil import rrule
 from datetime import datetime, timedelta
 import dateutil.parser
+
+parser = argparse.ArgumentParser(description='Takes output file, config, secret')
+parser.add_argument('-o','--output', help='Output file name',required=True)
+parser.add_argument('-c', '--config', help='Configuration File Name', required=True)
+args = parser.parse_args()
 
 first = dateutil.parser.parse("2013-04-08")
 last = datetime.now()
@@ -24,9 +30,11 @@ last = datetime.now()
 #analyt = codecs.open('/media/Windows7_OS/dpla/new/dpla.analytics.weekly.csv', 'w', encoding='utf-8')
 #logger = codecs.open('/media/Windows7_OS/dpla/new/analytics.log', 'a', encoding='utf-8')
 #analyt.write("item|hits\n")
-analyt = codecs.open('/media/storage/dpla-data/words/colls.oct/analytics/dpla.analytics.weekly.csv', 'w', encoding='utf-8')
-logger = codecs.open('/media/storage/dpla-data/words/colls.oct/analytics/analytics.log', 'a', encoding='utf-8')
+analyt = codecs.open(args.output, 'w', encoding='utf-8')
+logger = codecs.open('/media/storage/dpla-data/words/colls.oct/analytics/analytics.log.20151104', 'a', encoding='utf-8')
 analyt.write("item|hits\n")
+
+
 
 logger.write("\n\n##########\n##### " + str(last) + "\n##########\n\n")
 
@@ -34,7 +42,7 @@ counts = {}
 
 def main(argv):
   # Step 1. Get an analytics service object.
-  service = hello_analytics_api_v3_auth.initialize_service()
+  service = auth.initialize_service()
 
   try:
     # Step 2. Get the user's first profile ID.
